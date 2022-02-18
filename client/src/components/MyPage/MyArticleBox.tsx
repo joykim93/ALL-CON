@@ -4,7 +4,7 @@ import viewImage from '../../images/view.png';
 import groupImage from '../../images/group.png';
 import noArticleImg from '../../images/no_article_img.png'
 /* Store import */
-import { setTarget, setAllConcerts } from '../../store/MainSlice';
+import { setTarget } from '../../store/MainSlice';
 import {
   setTargetArticle,
   setTargetArticlesUserInfo,
@@ -15,7 +15,7 @@ import MyArticlePagination from './MyArticlePagination';
 import axios from 'axios';
 import { RootState } from '../../index';
 import { useSelector, useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function MyArticleBox() {
   /* dispatch / navigate */

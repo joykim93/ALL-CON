@@ -10,7 +10,7 @@ import {
 } from '../../store/ConChinSlice';
 /* Library import */
 import axios from 'axios';
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 function ConChinArticleOrderBox() {
@@ -20,7 +20,11 @@ function ConChinArticleOrderBox() {
   );
   const { target } = useSelector((state: RootState) => state.main);
 
-  const getAllArticles = async () => {
+  /* useState => 지역상태 */
+  const [conChinArticleOrder, setConChinArticleOrder] =
+    useState<string>('view');
+
+  const getAllArticles = async (viewOrNew: string) => {
     try {
       /* 타겟은 있지만 종속된 게시물이 없을때, 게시물 없음 표시 */
       if (
@@ -34,7 +38,7 @@ function ConChinArticleOrderBox() {
       ) {
         /* 타겟이 없지만 전체 표시중일 때 게시물 전체 정렬순에 맞게 정렬 */
         const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/concert/article?order=${articleOrder}`,
+          `${process.env.REACT_APP_API_URL}/concert/article?order=${viewOrNew}`,
           { withCredentials: true },
         );
         if (response.data) {
@@ -54,7 +58,7 @@ function ConChinArticleOrderBox() {
       } else {
         /* 타겟에 종속된 게시물 정렬순표시 */
         const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/concert/${target.id}/article?order=${articleOrder}`,
+          `${process.env.REACT_APP_API_URL}/concert/${target.id}/article?order=${viewOrNew}`,
           { withCredentials: true },
         );
         if (response.data) {
@@ -76,12 +80,20 @@ function ConChinArticleOrderBox() {
   };
 
   /* 게시물 정렬순 교체 및 게시물 조회*/
-  const setArticleOrderAndGetAllArticles = (hotOrView: string) => {
-    dispatch(setArticleOrder(hotOrView));
+  const setArticleOrderAndGetAllArticles = (viewOrNew: string) => {
+    dispatch(setArticleOrder(viewOrNew));
+    getAllArticles(viewOrNew);
   };
 
+  // useEffect(() => {
+  //   getAllArticles();
+  // }, [articleOrder]);
+
+  /* articleOrder 변경시 지역상태 conChinArticleOrder 변경  */
   useEffect(() => {
-    getAllArticles();
+    setConChinArticleOrder(articleOrder);
+    // console.log('conChinArticleOrder:');
+    // console.log(conChinArticleOrder);
   }, [articleOrder]);
 
   return (
@@ -92,7 +104,7 @@ function ConChinArticleOrderBox() {
           setArticleOrderAndGetAllArticles('view');
         }}
         style={
-          articleOrder === 'view'
+          conChinArticleOrder === 'view'
             ? { backgroundColor: '#FFCE63', color: 'white' }
             : { backgroundColor: 'white', color: '#404040' }
         }
@@ -105,7 +117,7 @@ function ConChinArticleOrderBox() {
           setArticleOrderAndGetAllArticles('new');
         }}
         style={
-          articleOrder === 'new'
+          conChinArticleOrder === 'new'
             ? { backgroundColor: '#FFCE63', color: 'white' }
             : { backgroundColor: 'white', color: '#404040' }
         }

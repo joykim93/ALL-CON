@@ -8,6 +8,7 @@ import {
   setArticleTotalPage,
   setTargetArticle,
   setPostingOrder,
+  setArticleOrder,
   setArticleCurPage,
   setArticleRendered,
 } from '../../store/ConChinSlice';
@@ -18,17 +19,25 @@ import { useState, useEffect, useRef } from 'react';
 
 function ConChinPostingOrderBox() {
   const dispatch = useDispatch();
-  const { postingOrder } = useSelector((state: RootState) => state.conChin);
   const { target, allConcerts } = useSelector((state: RootState) => state.main);
-  const { articleOrder, allArticles, articleRendered, targetArticle } =
-    useSelector((state: RootState) => state.conChin);
+  const {
+    postingOrder,
+    articleOrder,
+    allArticles,
+    articleRendered,
+    targetArticle,
+  } = useSelector((state: RootState) => state.conChin);
+
+  /* useState => 지역상태 */
+  const [conChinPostingOrder, setConChinPostingOrder] =
+    useState<String>('view');
 
   /*전체 콘서트 받아오기 */
-  const getAllConcerts = async () => {
+  const getAllConcerts = async (clickedPostingOrder: String) => {
     if (Object.keys(targetArticle).length === 0) {
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/concert?order=${postingOrder}`,
+          `${process.env.REACT_APP_API_URL}/concert?order=${clickedPostingOrder}`,
           { withCredentials: true },
         );
         if (response.data) {
@@ -41,10 +50,10 @@ function ConChinPostingOrderBox() {
   };
 
   /* 전체 게시물 받아오기 */
-  const getAllArticles = async () => {
+  const getAllArticles = async (order: string) => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/concert/article?order=${articleOrder}`,
+        `${process.env.REACT_APP_API_URL}/concert/article?order=${order}`,
         { withCredentials: true },
       );
       if (response.data) {
@@ -63,38 +72,44 @@ function ConChinPostingOrderBox() {
   };
 
   /* useEffect: 정렬순으로 전체 콘서트, 게시물 받아오기  */
-  useEffect(() => {
-    /* 타겟이 없을 때 모든 콘서트 보여주기 */
-    if (Object.keys(target).length === 0) {
-      getAllConcerts();
-      getAllArticles();
-      dispatch(setTarget({}));
-      dispatch(setArticleRendered(false));
-      dispatch(setTargetArticle({}));
-      dispatch(setArticleCurPage(1));
-
-      /* 타겟이 있고 타겟 게시물이 없을 때 타겟에 대한 게시물만 보여주기*/
-    } else if (
-      Object.keys(target).length > 0 &&
-      Object.keys(targetArticle).length === 0
-    ) {
-      dispatch(setTargetArticle({}));
-      dispatch(setArticleRendered(true));
-      dispatch(setArticleCurPage(1));
-    }
-  }, [postingOrder]);
+  // useEffect(() => {
+  //   /* 타겟이 없을 때 모든 콘서트 보여주기 */
+  //   if (Object.keys(target).length === 0) {
+  //     getAllConcerts();
+  //     getAllArticles();
+  //     dispatch(setTarget({}));
+  //     dispatch(setArticleRendered(false));
+  //     dispatch(setTargetArticle({}));
+  //     dispatch(setArticleCurPage(1));
+  //     /* 타겟이 있고 타겟 게시물이 없을 때 타겟에 대한 게시물만 보여주기*/
+  //   } else if (
+  //     Object.keys(target).length > 0 &&
+  //     Object.keys(targetArticle).length === 0
+  //   ) {
+  //     dispatch(setTargetArticle({}));
+  //     dispatch(setArticleRendered(true));
+  //     dispatch(setArticleCurPage(1));
+  //   }
+  // }, [postingOrder]);
 
   /* 타겟 초기화 핸들러 */
   const resetTargetHandler = () => {
+    dispatch(setPostingOrder('view'));
+    dispatch(setArticleOrder('view'));
     dispatch(setTarget({}));
     dispatch(setArticleRendered(false));
     dispatch(setTargetArticle({}));
     dispatch(setArticleCurPage(1));
-    getAllConcerts();
-    getAllArticles();
-    getAllConcerts();
-    getAllArticles();
+    getAllConcerts('view');
+    getAllArticles('view');
   };
+
+  /* postingOrder 변경시 지역상태 conChinPostingOrder 변경  */
+  useEffect(() => {
+    setConChinPostingOrder(postingOrder);
+    // console.log('conChinPostingOrder:');
+    // console.log(conChinPostingOrder);
+  }, [postingOrder]);
 
   return (
     <div
@@ -112,12 +127,12 @@ function ConChinPostingOrderBox() {
         onClick={() => {
           if (Object.keys(target).length === 0) {
             dispatch(setPostingOrder('view'));
-            getAllConcerts();
-            getAllArticles();
+            getAllConcerts('view');
+            getAllArticles(articleOrder);
           }
         }}
         style={
-          postingOrder === 'view'
+          conChinPostingOrder === 'view'
             ? { backgroundColor: '#FFCE63', color: 'white' }
             : { backgroundColor: 'white', color: '#404040' }
         }
@@ -129,12 +144,12 @@ function ConChinPostingOrderBox() {
         onClick={() => {
           if (Object.keys(target).length === 0) {
             dispatch(setPostingOrder('near'));
-            getAllConcerts();
-            getAllArticles();
+            getAllConcerts('near');
+            getAllArticles(articleOrder);
           }
         }}
         style={
-          postingOrder === 'near'
+          conChinPostingOrder === 'near'
             ? { backgroundColor: '#FFCE63', color: 'white' }
             : { backgroundColor: 'white', color: '#404040' }
         }
@@ -146,12 +161,12 @@ function ConChinPostingOrderBox() {
         onClick={() => {
           if (Object.keys(target).length === 0) {
             dispatch(setPostingOrder('new'));
-            getAllConcerts();
-            getAllArticles();
+            getAllConcerts('new');
+            getAllArticles(articleOrder);
           }
         }}
         style={
-          postingOrder === 'new'
+          conChinPostingOrder === 'new'
             ? { backgroundColor: '#FFCE63', color: 'white' }
             : { backgroundColor: 'white', color: '#404040' }
         }

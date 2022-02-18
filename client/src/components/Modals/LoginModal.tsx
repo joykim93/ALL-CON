@@ -6,13 +6,12 @@ import xButton from '../../images/xButton.png';
 /* Store import */
 import {  setTarget, setTargetIdx, setOrder, setIsRendering } from '../../store/MainSlice';
 import { setPageNum } from '../../store/ConcertCommentSlice';
-import { login, getUserInfo } from '../../store/AuthSlice';
+import { login, loginCheck, getUserInfo } from '../../store/AuthSlice';
 import {
   showLoginModal,
   showSignupModal,
   showFindPasswordModal,
   showConcertModal,
-  showSuccessModal,
   showAlertModal,
   insertAlertText,
 } from '../../store/ModalSlice';
@@ -58,14 +57,17 @@ function LoginModal() {
         /* 로그인 & 유저 상태 변경 후 메인페이지 리다이렉트 */
         dispatch(getUserInfo(response.data.data.userInfo));
         dispatch(login());
+        dispatch(loginCheck(true));
       }
       goHomeHandler();
     } catch (err) {
       const error = err as AxiosError;
       if (error.response?.status === 400)
         dispatch(insertAlertText('빈칸을 모두 입력해주세요! 😖'));
+      else if (error.response?.status === 401)
+        dispatch(insertAlertText('잘못된 비밀번호입니다! 😖'));
       else if (error.response?.status === 403)
-        dispatch(insertAlertText('잘못된 이메일 혹은 비밀번호입니다! 😖'));
+        dispatch(insertAlertText('존재하지 않는 이메일입니다! 😖'));
       else dispatch(insertAlertText('Server Error! 😖'));
       dispatch(showAlertModal(true));
     }

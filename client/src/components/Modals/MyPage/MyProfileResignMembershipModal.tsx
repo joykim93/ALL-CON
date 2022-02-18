@@ -1,13 +1,13 @@
 /* CSS import */
 import ticket from '../../../images/resignTicket.png';
 /* Store import */
-import { logout } from '../../../store/AuthSlice';
+import { logout, loginCheck } from '../../../store/AuthSlice';
 /* Library import */
 import axios from 'axios';
 import { RootState } from '../../../index';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { showMyProfileResignMembershipModal, insertAlertText, insertBtnText, showSuccessModal } from '../../../store/ModalSlice';
+import { showMyProfileResignMembershipModal, insertAlertText, insertBtnText, showSuccessModal, showAlertModal } from '../../../store/ModalSlice';
 
   function MyProfileResignMembershipModal() {
 
@@ -26,16 +26,19 @@ import { showMyProfileResignMembershipModal, insertAlertText, insertBtnText, sho
   // 회원탈퇴 버튼
   const handleResignMembership = async () => {
     try {
-      await axios.delete(
+      const response = await axios.delete(
         `${process.env.REACT_APP_API_URL}/user/me`,
         { withCredentials: true }
       );
+      // Axios 결과 로그아웃 상태시 MainPage Redirect
+      if(response.data.message === 'Unauthorized userInfo!') return dispatch(loginCheck(false));
+
       // ------------------- 주의!!! 수정이 필요!
       dispatch(showMyProfileResignMembershipModal(false))
       
       dispatch(insertAlertText('GoodBye! 🙂'));
       dispatch(insertBtnText('확인'));
-      dispatch(showSuccessModal(true));
+      dispatch(showAlertModal(true));
       // ------------------- 주의!!! 수정이 필요!
       /* 로그인 상태 변경 & main 페이지로 이동 */
       dispatch(logout());

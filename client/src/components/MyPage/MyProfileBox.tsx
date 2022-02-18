@@ -11,7 +11,6 @@ import React, { useState, useEffect } from 'react';
 import { getYearList, getMonthList, getDateList } from '../../store/AuthSlice';
 import {
   showMyProfileImageModal,
-  showMyProfileResignMembershipModal,
 } from '../../store/ModalSlice';
 import {
   setMyIntroductionState,
@@ -37,10 +36,8 @@ function MyProfileBox() {
   /* 지역상태 - useState */
   // 프로필 수정 버튼 모니터링 상태
   const [profileChangeBtn, setProfileChangeBtn] = useState<boolean>(false);
-  // 프로필 수정 모달 상태
-  const [profileEdit, setProfileEdit] = useState<boolean>(false);
-  // 회원탈퇴 모달 상태
-  const [resignMembership, setResignMembership] = useState<boolean>(false);
+  //
+  const [editIntroduction, setEditIntroduction] = useState<string | undefined>(userInfo.introduction);
 
   /* useEffect */
 
@@ -56,7 +53,7 @@ function MyProfileBox() {
       }),
     );
     // 프로필 수정 버튼 클릭 상태 갱신
-    setProfileChangeBtn(true);
+    // setProfileChangeBtn(true);
     dispatch(setMyIntroductionState(true));
     navigate('/myEdit');
   };
@@ -111,9 +108,8 @@ function MyProfileBox() {
   };
 
   // 자기소개 글을 수정할 경우
-  const inputIntroduction = async (
-    e: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
+  const inputIntroduction = async (e: React.ChangeEvent<HTMLTextAreaElement>,) => {
+    setEditIntroduction(e.target.value);
     dispatch(getMyIntroduction(e.target.value));
   };
 
@@ -169,21 +165,27 @@ function MyProfileBox() {
         </div>
         {/* 자기소개 */}
         <div id='textWrapper'>
-          {btnSwitchState?.profileEdit ? (
-            // myIntroductionState
-            <textarea
-              id='introduction'
-              maxLength={40}
-              placeholder={
-                userInfo.introduction
-                  ? userInfo.introduction
-                  : '자기소개를 입력해주세요.'
-              }
-              onChange={inputIntroduction}
-            ></textarea>
-          ) : (
-            <div id='introduction'>{userInfo.introduction}</div>
-          )}
+          {
+            btnSwitchState?.profileEdit 
+            ? 
+            (
+              <textarea
+                id='introduction'
+                maxLength={40}
+                placeholder={
+                  userInfo.introduction
+                    ? ''
+                    : '자기소개를 입력해주세요.'
+                }
+                value={editIntroduction}
+                onChange={inputIntroduction}
+              ></textarea>
+            ) 
+            : 
+            (
+              <div id='introduction'>{userInfo.introduction}</div>
+            )
+          }
         </div>
         <div id='modifyBtnWrapper'>
           <button
@@ -203,16 +205,6 @@ function MyProfileBox() {
             }}
           >
             <b>콘친 인증</b>
-          </button>
-        </div>
-        <div id='resignBtnWrapper'>
-          <button
-            className='btn'
-            onClick={() => {
-              dispatch(showMyProfileResignMembershipModal(true));
-            }}
-          >
-            회원 탈퇴
           </button>
         </div>
       </div>
