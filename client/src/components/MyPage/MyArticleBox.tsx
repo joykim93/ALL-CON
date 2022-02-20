@@ -2,12 +2,17 @@
 /* CSS import */
 import viewImage from '../../images/view.png';
 import groupImage from '../../images/group.png';
-import noArticleImg from '../../images/no_article_img.png'
+import commentImage from '../../images/commentDots.png';
+import noArticleImg from '../../images/no_article_img.png';
 /* Store import */
 import { setTarget } from '../../store/MainSlice';
 import {
   setTargetArticle,
   setTargetArticlesUserInfo,
+  setPostingOrder,
+  setArticleOrder,
+  setAllArticles, 
+  setArticleTotalPage,
 } from '../../store/ConChinSlice';
 import { setConChinPageNum } from '../../store/ConChinCommentSlice';
 import MyArticlePagination from './MyArticlePagination';
@@ -23,7 +28,9 @@ function MyArticleBox() {
   const navigate = useNavigate();
 
   /* useSelector */
-  const { articleInfo, myTotalArticle } = useSelector((state: RootState) => state.my);
+  const { articleInfo, myTotalArticle } = useSelector(
+    (state: RootState) => state.my,
+  );
 
   /* 지역상태 - useState */
 
@@ -48,12 +55,21 @@ function MyArticleBox() {
       { withCredentials: true },
     );
 
-    // 선택한 게시물 작성자 유저정보를 불러온다 */
-
+    // 선택한 게시물 작성자 유저정보를 불러온다
     const responseUser = await axios.get(
       `${process.env.REACT_APP_API_URL}/user/other/${user_id}`,
       { withCredentials: true },
     );
+    
+    // 테스트
+    const responseAllArticle = await axios.get(
+      `${process.env.REACT_APP_API_URL}/concert/${responseConcert.data.data.concertInfo.id}/article?order='view'`,
+      { withCredentials: true },
+    );
+
+    dispatch(setAllArticles(responseAllArticle.data.data.articleInfo));
+    dispatch(setArticleTotalPage(responseAllArticle.data.data.totalPage));
+    // 테스트
 
     // 현재 선택한 콘서트 업데이트 (target)
     dispatch(setTarget(responseConcert.data.data.concertInfo));
@@ -64,6 +80,10 @@ function MyArticleBox() {
     // 현재 선택한 게시물 업데이트 (target)
     dispatch(setTargetArticle(responseArticle.data.data.articleInfo));
     dispatch(setConChinPageNum(1));
+   
+    dispatch(setPostingOrder('view'));
+    dispatch(setArticleOrder('view'));
+
     navigate('/conchin');
   };
 
@@ -86,11 +106,19 @@ function MyArticleBox() {
                         handleArticleSelected(el.id, el.concert_id, el.user_id)
                       }
                     >
+                      {el.activation === false ? (
+                        <div className='endArticle'>
+                          <p className='endTitle'>종료된 게시물</p>
+                        </div>
+                      ) : null}
                       <img
                         className='thumbNail'
                         src={el.image}
-                        // alt='defaultImage'
                       ></img>
+                      <div className='commentBox'>
+                        <img className='icon' src={commentImage} />
+                        <div className='count'>{el.total_comment}</div>
+                      </div>
                       <div id='myMemberBoxWrapper'>
                         <div className='memberBox'>
                           <img
@@ -100,13 +128,16 @@ function MyArticleBox() {
                           />
                           <div className='count'>
                             {' '}
-                            {el.member_count}/{el.total_member}{' '}
+                            {el.activation === true ? el.member_count : '-'}/
+                            {el.activation === true ? el.total_member : '-'}{' '}
                           </div>
                         </div>
                       </div>
                       <div className='title'>
                         <img className='icon' src={viewImage} alt='viewImage' />
-                        <p className='count'>{el.view < 0 ? null : el.view}</p>
+                        <p className='count'>
+                          {el.activation === true ? el.view : '종료'}
+                        </p>
                         <p className='date'>{el.updatedAt.substring(0, 10)}</p>
                         <p className='text'>{el.title}</p>
                       </div>
@@ -121,16 +152,14 @@ function MyArticleBox() {
       <div id='paginationWrapper'>
         <MyArticlePagination />
       </div>
-      
-      {/* 게시물이 없다면 display */}
-      { myTotalArticle === 0 
-        ? <div id='noArticleImgWrapper'> 
-            <img id='noArticleImg' src={noArticleImg} />
-            <p id='noArticleMessage' >작성한 게시물이 없습니다!</p> 
-          </div>
-        : null
-      }
 
+      {/* 게시물이 없다면 display */}
+      {myTotalArticle === 0 ? (
+        <div id='noArticleImgWrapper'>
+          <img id='noArticleImg' src={noArticleImg} />
+          <p id='noArticleMessage'>작성한 게시물이 없습니다!</p>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import menu from '../images/menu.png';
 import search from '../images/search.png';
 import yellowSearch from '../images/yellowSearch.png';
 import user from '../images/user.png';
+import xButton from '../images/xWhiteButton.png';
 /* Component import */
 import AutoComplete from './AutoComplete';
 /* Store import */
@@ -24,12 +25,15 @@ import {
   setArticleCurPage,
   setTargetArticle,
   setArticleRendered,
+  setPostingOrder,
+  setArticleOrder,
 } from '../store/ConChinSlice';
 import {
-  setIsScrolled,
+  setIsClosed,
   setScrollCount,
   setTimerMessage,
   setHeaderAllConcerts,
+  setIsPaused,
 } from '../store/HeaderSlice';
 import { setPageNum } from '../store/ConcertCommentSlice';
 import {
@@ -38,12 +42,15 @@ import {
   setTarget,
   setTargetIdx,
   setIsRendering,
+  setAllConcerts,
 } from '../store/MainSlice';
 /* Library import */
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+/* 타이머 함수 */
+let timer: any;
 
 function Header() {
   const dispatch = useDispatch();
@@ -61,7 +68,7 @@ function Header() {
     conChinWritingModal,
     mainKakaoModal,
   } = useSelector((state: RootState) => state.modal);
-  const { isScrolled, scrollCount, timerMessage, headerAllConcerts } =
+  const { isClosed, scrollCount, timerMessage, headerAllConcerts, isPaused } =
     useSelector((state: RootState) => state.header);
   const { articleOrder, allArticles } = useSelector(
     (state: RootState) => state.conChin,
@@ -72,30 +79,27 @@ function Header() {
 
   /* Header Timer */
   const [isPause, setIsPause] = useState<boolean>(false);
-  let timer: any;
+
   let stDate = new Date().getTime();
   let edDate = new Date('2222-12-31 09:00:00').getTime(); // 종료날짜
   let RemainDate = edDate - stDate;
-
   /* 헤더 타이머 시작 핸들러 */
   const startTimer = () => {
-    stopTimer();
-    setIsPause(false);
     timer = setInterval(msg_time, 1000); // 타이머 1초간격으로 수행
   };
   /* 헤더 타이머 멈춤 핸들러 */
   const stopTimer = () => {
-    setIsPause(true);
     clearInterval(timer);
   };
 
   /* 랜딩 페이지 클릭 시 히든타이머 호출 핸들러 */
   const showTimer = () => {
-    dispatch(setIsScrolled(false));
+    dispatch(setIsClosed(false));
+    dispatch(setIsPaused(false));
   };
 
   function msg_time() {
-    if (!isPause) {
+    if (isPause === false) {
       let hours: string | number = Math.floor(
         (RemainDate % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
       );
@@ -106,7 +110,7 @@ function Header() {
         (RemainDate % (1000 * 60)) / 1000,
       );
       if (String(hours).length === 1) {
-        miniutes = `0${hours}`;
+        hours = `0${hours}`;
       }
       if (String(miniutes).length === 1) {
         miniutes = `0${miniutes}`;
@@ -114,41 +118,18 @@ function Header() {
       if (String(seconds).length === 1) {
         seconds = `0${seconds}`;
       }
-
       let m = `다음 콘서트를 업데이트하기까지 ${hours}:${miniutes}:${seconds}`; // 남은 시간 text형태로 변경
+      // console.log(m);
       dispatch(setTimerMessage(m));
-
       if (RemainDate < 0) {
         // 시간이 종료 되면
-        clearInterval(timer); // 타이머 해제
+        stopTimer(); // 타이머 해제
+        dispatch(setIsClosed(true));
       } else {
         RemainDate = RemainDate - 1000; // 남은시간 -1초
       }
     }
   }
-  /* Header Timer */
-  useEffect(() => {
-    stopTimer();
-    startTimer();
-  }, []);
-
-  /* 스크롤 위치 저장 useEffect */
-  useEffect(() => {
-    window.addEventListener('scroll', updateScroll);
-  });
-  /* 해당 모달 띄워져있을 시 스크롤바 제거 useEffect */
-  useEffect(() => {
-    if (
-      loginModal ||
-      signupModal ||
-      conChinProfileModal ||
-      mainKakaoModal ||
-      conChinProfileModal ||
-      conChinWritingModal
-    )
-      document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = 'unset';
-  });
 
   /* 드랍다운 오픈 상태 변경 핸들러 */
   const displayMyDropDown = () => {
@@ -159,15 +140,13 @@ function Header() {
     dispatch(
       setScrollCount(window.scrollY || document.documentElement.scrollTop),
     );
-
-    if (scrollCount > 0.5) dispatch(setIsScrolled(true));
   };
 
   /* 전체 게시물 받아오기 */
   const getAllArticles = async () => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/concert/article?order=${articleOrder}`,
+        `${process.env.REACT_APP_API_URL}/concert/article?order=view`,
         { withCredentials: true },
       );
       if (response.data) {
@@ -175,16 +154,14 @@ function Header() {
         dispatch(setArticleTotalPage(response.data.data.totalPage));
         dispatch(setArticleCurPage(1));
       } else {
-        console.log('없거나 실수로 못가져왔어요..');
       }
     } catch (err) {
       console.log(err);
-      console.log('에러가 났나봐요.');
     }
   };
 
-  /*전체 콘서트 받아오기(정렬순:view) */
-  const getAllConcerts = async () => {
+  /* 헤더 전체 콘서트 받아오기(정렬순:view) */
+  const getHeaderAllConcerts = async () => {
     try {
       setSearchClicked(!searchClicked);
       const response = await axios.get(
@@ -194,6 +171,22 @@ function Header() {
       if (response.data) {
         /* 서버 응답값이 있다면 & target 상태 변경 */
         dispatch(setHeaderAllConcerts(response.data.data.concertInfo));
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  /* 콘서트 페이지 전체 콘서트 받아오기(정렬순:view) */
+  const getAllConcerts = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/concert?order=view`,
+        { withCredentials: true },
+      );
+      if (response.data) {
+        /* 서버 응답값이 있다면 & allConcerts 상태 변경 */
+        dispatch(setAllConcerts(response.data.data.concertInfo));
       }
     } catch (err) {
       console.log(err);
@@ -220,6 +213,7 @@ function Header() {
       setSearchClicked(false);
     } else if (menu === 'concert') {
       /* ConcertPage */
+      getAllConcerts();
       dispatch(setTarget({}));
       dispatch(setOrder('view'));
       navigate('/concert');
@@ -230,11 +224,56 @@ function Header() {
       dispatch(setTargetArticle({}));
       dispatch(setArticleRendered(false));
       dispatch(setArticleCurPage(1));
-      getAllArticles();
       navigate('/conchin');
+      dispatch(setPostingOrder('view'));
+      dispatch(setArticleOrder('view'));
+      getAllConcerts();
+      getAllArticles();
       setSearchClicked(false);
     }
   };
+  //
+  //
+  /* Header Timer useEffect : 첫 렌더링시에만 */
+  useEffect(() => {
+    showTimer();
+    setSearchClicked(false);
+    dispatch(setScrollCount(0));
+  }, []);
+
+  useEffect(() => {
+    if (isPaused === false) {
+      startTimer();
+    } else if (isPaused === true) {
+      stopTimer();
+    }
+  }, [isPaused]);
+
+  /* 스크롤 위치 저장 useEffect */
+  useEffect(() => {
+    if (scrollCount < 48) {
+      window.addEventListener('scroll', updateScroll);
+    }
+  }, [scrollCount]);
+
+  /* 해당 모달 띄워져있을 시 스크롤바 제거 useEffect */
+  useEffect(() => {
+    if (
+      loginModal ||
+      signupModal ||
+      conChinProfileModal ||
+      mainKakaoModal ||
+      conChinWritingModal
+    )
+      document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+  }, [
+    loginModal,
+    signupModal,
+    conChinProfileModal,
+    mainKakaoModal,
+    conChinWritingModal,
+  ]);
 
   return (
     /* 해당 모달들(loginModal, signupModal 등) 띄워져있을 시 헤더 통채로 교체 */
@@ -250,22 +289,28 @@ function Header() {
           : 'headerContainer'
       }
     >
-      {/* 스크롤 후 히든타이머 제거 */}
-      <div
-        id={isScrolled === false ? 'firstHiddenBar' : 'hiddenBar'}
-        onMouseOver={startTimer}
-        onMouseOut={stopTimer}
-      >
-        {timerMessage}
-      </div>
-
+      {/* x버튼 클릭 후 히든타이머 제거 */}
+      {isClosed === false ? (
+        <div id='firstHiddenBar'>
+          {timerMessage}
+          <div
+            className='closeButtonWrapper'
+            onClick={() => {
+              dispatch(setIsClosed(true));
+              dispatch(setIsPaused(true));
+            }}
+          >
+            <img className='closeButton' src={xButton} />
+          </div>
+        </div>
+      ) : null}
       <div id='logoBar'>
         <Link to='/main' onClick={() => resetHandler('logo')}>
-          {/* 스크롤 후 로고 호출*/}
+          {/* 로고 호출 */}
 
           <img
             className={
-              isScrolled === false || searchClicked ? 'logohide' : 'logo'
+              isClosed === false || searchClicked ? 'logohide' : 'logo'
             }
             alt='logoImg'
             src={logo}
@@ -292,7 +337,7 @@ function Header() {
             className='search'
             alt='searchImg'
             src={searchClicked ? yellowSearch : search}
-            onClick={getAllConcerts}
+            onClick={getHeaderAllConcerts}
           />
         </div>
         <div id='loginWrapper'>
